@@ -15,7 +15,10 @@ import * as mongooseDelete from 'mongoose-delete';
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('DATABASE_URL'),
         connectionFactory: (connection) => {
-          connection.plugin(mongooseDelete, { deletedAt: true });
+          connection.plugin(mongooseDelete, {
+            deletedAt: true,
+            overrideMethods: true,
+          });
           return connection;
         },
       }),

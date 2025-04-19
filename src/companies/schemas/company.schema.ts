@@ -15,6 +15,9 @@ export class Company {
   @Prop()
   description: string;
 
+  @Prop()
+  deleted: boolean;
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: User.name })
   createdBy: User;
 
