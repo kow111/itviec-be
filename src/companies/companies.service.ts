@@ -102,7 +102,7 @@ export class CompaniesService {
         throw new NotFoundException('User not found');
       }
 
-      const company = await this.companyModel.findOneWithDeleted({ _id: id });
+      const company = await this.companyModel.findById(id);
       if (!company) {
         throw new NotFoundException('Company not found');
       }

@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateUserDto, RegisterUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
@@ -7,6 +12,9 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { console } from 'inspector';
 import { SoftDeleteModel } from 'mongoose-delete';
+import { create } from 'domain';
+import { IUser } from './users.interface';
+import aqp from 'api-query-params';
 
 @Injectable()
 export class UsersService {
@@ -23,28 +31,112 @@ export class UsersService {
     return bcrypt.compareSync(password, hash);
   }
 
-  async create(createUserDto: CreateUserDto) {
-    const { password } = createUserDto;
-    const hashedPassword = await this.hashPassword(password);
-    createUserDto.password = hashedPassword;
-    const createdUser = await this.userModel.create(createUserDto);
-    return createdUser;
+  async create(createUserDto: CreateUserDto, user: IUser) {
+    try {
+      const foundUser = await this.userModel.findOne({
+        email: createUserDto.email,
+      });
+      if (foundUser) {
+        throw new BadRequestException(
+          `User with email ${createUserDto.email} already exists`,
+        );
+      }
+      const { password } = createUserDto;
+      const hashedPassword = await this.hashPassword(password);
+      createUserDto.password = hashedPassword;
+      const createdUser = await this.userModel.create({
+        ...createUserDto,
+        createdBy: user._id,
+        updatedBy: user._id,
+      });
+      return createdUser;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to create user: ${error.message}`);
+    }
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async registerUser(createUserDto: RegisterUserDto) {
+    try {
+      const user = await this.userModel.findOne({
+        email: createUserDto.email,
+      });
+      if (user) {
+        throw new BadRequestException(
+          `User with email ${createUserDto.email} already exists`,
+        );
+      }
+      const { password } = createUserDto;
+      const hashedPassword = await this.hashPassword(password);
+      createUserDto.password = hashedPassword;
+      const createdUser = await this.userModel.create({
+        ...createUserDto,
+        role: 'USER',
+      });
+      return {
+        _id: createdUser._id,
+        createdAt: createdUser.createdAt,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to register user: ${error.message}`,
+      );
+    }
+  }
+
+  async findAll(page: number, limit: number, qs: string) {
+    try {
+      const { filter, sort, population } = aqp(qs);
+      delete filter.page;
+      delete filter.limit;
+      const skip = (page - 1) * limit;
+      const total = await this.userModel.countDocuments(filter);
+      const totalPage = Math.ceil(total / limit);
+
+      const result = await this.userModel
+        .find(filter)
+        .skip(skip)
+        .limit(limit)
+        .sort(sort as any)
+        .populate(population)
+        .select('-password');
+      return {
+        meta: {
+          current: page,
+          pageSize: limit,
+          pages: totalPage,
+          total: total,
+        },
+        result: result,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to fetch user: ${error.message}`);
+    }
   }
 
   async findOne(id: string) {
     try {
-      const user = await this.userModel.findById(id);
+      const user = await this.userModel.findById(id).lean();
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
       const { password, ...result } = user;
       return result;
     } catch (error) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to delete company: ${error.message}`,
+      );
     }
   }
 
@@ -64,30 +156,53 @@ export class UsersService {
     }
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(id: string, updateUserDto: UpdateUserDto, user: IUser) {
     try {
-      const user = await this.userModel.findById(id);
-      if (!user) {
+      const foundUser = await this.userModel.findById(id);
+      if (!foundUser) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
-      return await this.userModel.findByIdAndUpdate(id, updateUserDto, {
-        new: true,
-        runValidators: true,
-      });
+      const rs = (await this.userModel.findByIdAndUpdate(
+        id,
+        {
+          ...updateUserDto,
+          updatedBy: user._id,
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+      )) as UserDocument;
+      return {
+        _id: rs._id,
+        updatedAt: rs.updatedAt,
+      };
     } catch (error) {
-      throw new Error(`Error updating user with ID ${id}: ${error.message}`);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to update user: ${error.message}`);
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: IUser) {
     try {
-      const user = await this.userModel.findById(id);
-      if (!user) {
+      const foundUser = await this.userModel.findById(id);
+      if (!foundUser) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
+      if (foundUser.deleted) {
+        throw new BadRequestException('User already deleted');
+      }
+      await this.userModel.findByIdAndUpdate(id, {
+        deletedBy: user._id,
+      });
       return this.userModel.deleteById(id);
     } catch (error) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to delete user: ${error.message}`);
     }
   }
 }

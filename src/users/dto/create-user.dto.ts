@@ -24,10 +24,11 @@ export class CreateUserDto {
   @IsNotEmpty()
   role: string;
 
+  @IsNotEmpty()
   company: mongoose.Schema.Types.ObjectId;
 }
 
-export class RegisterUserUserDto {
+export class RegisterUserDto {
   @IsNotEmpty()
   name: string;
 

@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { IUser } from 'src/users/users.interface';
 import { UsersService } from 'src/users/users.service';
 
@@ -24,6 +25,20 @@ export class AuthService {
       return result;
     }
     return null;
+  }
+
+  async register(registerUserDto: RegisterUserDto) {
+    try {
+      const result = await this.usersService.registerUser(registerUserDto);
+      return result;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to register user: ${error.message}`,
+      );
+    }
   }
 
   async login(user: IUser) {
