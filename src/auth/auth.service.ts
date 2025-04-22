@@ -1,14 +1,18 @@
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { IUser } from 'src/users/users.interface';
 import { UsersService } from 'src/users/users.service';
+const ms = require('ms');
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async validateUser(username: string, pass: string): Promise<any> {
@@ -41,7 +45,7 @@ export class AuthService {
     }
   }
 
-  async login(user: IUser) {
+  async login(user: IUser, response: Response) {
     const { _id, name, email, role } = user;
     const payload = {
       sub: 'token login',
@@ -51,12 +55,52 @@ export class AuthService {
       email,
       role,
     };
+
+    const refreshToken = await this.createRefreshToken(payload);
+    await this.usersService.updateUserToken(refreshToken, _id);
+    const expiration = this.configService.get<string>(
+      'JWT_REFRESH_EXPIRATION',
+    )!;
+    if (!expiration) {
+      throw new Error('JWT_REFRESH_EXPIRATION is not defined');
+    }
+    const maxAge = ms(expiration);
+    response.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      maxAge: maxAge,
+    });
     return {
       access_token: this.jwtService.sign(payload),
-      _id,
-      name,
-      email,
-      role,
+      user: {
+        _id,
+        name,
+        email,
+        role,
+      },
     };
+  }
+
+  async createRefreshToken(payload) {
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
+    });
+
+    return refreshToken;
+  }
+
+  async handleRefreshToken(refreshToken: string, response: Response) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to refresh token: ${error.message}`,
+      );
+    }
   }
 }

@@ -205,4 +205,24 @@ export class UsersService {
       throw new BadRequestException(`Failed to delete user: ${error.message}`);
     }
   }
+
+  async updateUserToken(refreshToken: string, userId: string) {
+    try {
+      const user = await this.userModel.findByIdAndUpdate(
+        userId,
+        {
+          refreshToken: refreshToken,
+        },
+        { new: true },
+      );
+      return user;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to update user token: ${error.message}`,
+      );
+    }
+  }
 }

@@ -3,13 +3,15 @@ import {
   Controller,
   Get,
   Post,
-  Request,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { Public, ResponseMessage, User } from 'src/decorator/customize';
 import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from 'src/users/dto/create-user.dto';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -19,8 +21,8 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @ResponseMessage('Login successful')
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  async login(@Req() req, @Res({ passthrough: true }) response: Response) {
+    return this.authService.login(req.user, response);
   }
 
   @Public()
@@ -30,8 +32,22 @@ export class AuthController {
     return this.authService.register(createUserDto);
   }
 
-  @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  @Get('account')
+  @ResponseMessage('Account retrieved successfully')
+  getProfile(@Req() req) {
+    return {
+      user: req.user,
+    };
+  }
+
+  @Public()
+  @Get('refresh')
+  @ResponseMessage('Refresh token successful')
+  handleRefreshToken(@Req() req: Request) {
+    const refreshToken = req.cookies['refresh_token'];
+    console.log('Refresh token:', refreshToken);
+    return {
+      user: req.user,
+    };
   }
 }
