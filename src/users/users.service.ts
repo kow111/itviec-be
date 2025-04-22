@@ -92,8 +92,8 @@ export class UsersService {
   async findAll(page: number, limit: number, qs: string) {
     try {
       const { filter, sort, population } = aqp(qs);
-      delete filter.page;
-      delete filter.limit;
+      delete filter.current;
+      delete filter.pageSize;
       const skip = (page - 1) * limit;
       const total = await this.userModel.countDocuments(filter);
       const totalPage = Math.ceil(total / limit);
@@ -222,6 +222,25 @@ export class UsersService {
       }
       throw new BadRequestException(
         `Failed to update user token: ${error.message}`,
+      );
+    }
+  }
+
+  async findByRefreshToken(refreshToken: string) {
+    try {
+      const user = await this.userModel.findOne({
+        refreshToken: refreshToken,
+      });
+      if (!user) {
+        throw new NotFoundException(`User with refresh token not found`);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to find user by refresh token: ${error.message}`,
       );
     }
   }

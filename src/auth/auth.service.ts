@@ -50,7 +50,7 @@ export class AuthService {
     const payload = {
       sub: 'token login',
       iss: 'from server',
-      _id,
+      _id: _id.toString(),
       name,
       email,
       role,
@@ -91,9 +91,18 @@ export class AuthService {
 
   async handleRefreshToken(refreshToken: string, response: Response) {
     try {
-      const payload = this.jwtService.verify(refreshToken, {
+      this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
+      const user = await this.usersService.findByRefreshToken(refreshToken);
+      const { _id, name, email, role } = user;
+      const iUser: IUser = {
+        _id: _id.toString(),
+        name,
+        email,
+        role,
+      };
+      return this.login(iUser, response);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -101,6 +110,19 @@ export class AuthService {
       throw new BadRequestException(
         `Failed to refresh token: ${error.message}`,
       );
+    }
+  }
+
+  async handleLogout(user: IUser, response: Response) {
+    try {
+      await this.usersService.updateUserToken('', user._id);
+      response.clearCookie('refresh_token');
+      return 'ok';
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to logout: ${error.message}`);
     }
   }
 }

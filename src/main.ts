@@ -15,7 +15,12 @@ async function bootstrap() {
   //validation
   app.useGlobalPipes(new ValidationPipe());
   //cors
-  app.enableCors();
+  app.enableCors({
+    origin: true,
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+  });
   //cookie
   app.use(cookieParser());
   //versioning

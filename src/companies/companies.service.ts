@@ -43,8 +43,8 @@ export class CompaniesService {
   async findAll(page: number, limit: number, qs: string) {
     try {
       const { filter, sort, population } = aqp(qs);
-      delete filter.page;
-      delete filter.limit;
+      delete filter.current;
+      delete filter.pageSize;
       const skip = (page - 1) * limit;
       const total = await this.companyModel.countDocuments(filter);
       const totalPage = Math.ceil(total / limit);

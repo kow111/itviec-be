@@ -43,11 +43,17 @@ export class AuthController {
   @Public()
   @Get('refresh')
   @ResponseMessage('Refresh token successful')
-  handleRefreshToken(@Req() req: Request) {
+  handleRefreshToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const refreshToken = req.cookies['refresh_token'];
-    console.log('Refresh token:', refreshToken);
-    return {
-      user: req.user,
-    };
+    return this.authService.handleRefreshToken(refreshToken, response);
+  }
+
+  @Post('logout')
+  @ResponseMessage('Logout successful')
+  handleLogout(@Req() req, @Res({ passthrough: true }) response: Response) {
+    return this.authService.handleLogout(req.user, response);
   }
 }
