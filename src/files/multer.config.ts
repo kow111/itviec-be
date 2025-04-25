@@ -3,9 +3,10 @@ import {
   MulterModuleOptions,
   MulterOptionsFactory,
 } from '@nestjs/platform-express';
-import fs from 'fs';
+import * as fs from 'node:fs';
 import { diskStorage } from 'multer';
-import path, { join } from 'path';
+import { join } from 'path';
+import * as path from 'path';
 
 @Injectable()
 export class MulterConfigService implements MulterOptionsFactory {
@@ -38,18 +39,28 @@ export class MulterConfigService implements MulterOptionsFactory {
   createMulterOptions(): MulterModuleOptions {
     return {
       storage: diskStorage({
+        filename: (req, file, cb) => {
+          if (!file || !file.originalname) {
+            return cb(new Error('File or originalname is missing'), '');
+          }
+
+          const extName = path.extname(file.originalname);
+          const baseName = path.basename(file.originalname, extName);
+          const finalName = `${baseName}-${Date.now()}${extName}`;
+          cb(null, finalName);
+        },
+
         destination: (req, file, cb) => {
           const folder = req?.headers?.folder_type ?? 'default';
-          this.ensureExists(`public/images/${folder}`);
-          cb(null, join(this.getRootPath(), `public/images/${folder}`));
-        },
-        filename: (req, file, cb) => {
-          //get image extension
-          let extName = path.extname(file.originalname);
-          //get image's name (without extension)
-          let baseName = path.basename(file.originalname, extName);
-          let finalName = `${baseName}-${Date.now()}${extName}`;
-          cb(null, finalName);
+          const fullPath = join(this.getRootPath(), `public/images/${folder}`);
+
+          try {
+            fs.mkdirSync(fullPath, { recursive: true });
+          } catch (error) {
+            console.error('Failed to create folder:', error);
+          }
+
+          cb(null, fullPath);
         },
       }),
     };
