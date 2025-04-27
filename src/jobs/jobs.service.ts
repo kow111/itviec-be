@@ -45,7 +45,7 @@ export class JobsService {
         .skip(skip)
         .limit(limit)
         .sort(sort as any)
-        .populate(population);
+        .populate({ path: 'company', select: '-description' });
       return {
         meta: {
           current: page,

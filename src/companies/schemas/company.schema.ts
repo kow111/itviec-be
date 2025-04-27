@@ -16,6 +16,9 @@ export class Company {
   description: string;
 
   @Prop()
+  logo: string;
+
+  @Prop()
   deleted: boolean;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })

@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsDate,
   IsDateString,
+  IsMongoId,
   IsNotEmpty,
 } from 'class-validator';
 import mongoose from 'mongoose';
@@ -16,6 +17,7 @@ export class CreateJobDto {
   skills: string[];
 
   @IsNotEmpty()
+  @IsMongoId()
   company: mongoose.Schema.Types.ObjectId;
 
   @IsNotEmpty()
