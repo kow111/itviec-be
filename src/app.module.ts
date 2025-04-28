@@ -9,6 +9,8 @@ import { CompaniesModule } from './companies/companies.module';
 import { JobsModule } from './jobs/jobs.module';
 import { FilesModule } from './files/files.module';
 import { ResumesModule } from './resumes/resumes.module';
+import { PermissionsModule } from './permissions/permissions.module';
+import { RolesModule } from './roles/roles.module';
 import * as mongooseDelete from 'mongoose-delete';
 
 @Module({
@@ -36,6 +38,8 @@ import * as mongooseDelete from 'mongoose-delete';
     JobsModule,
     FilesModule,
     ResumesModule,
+    PermissionsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
