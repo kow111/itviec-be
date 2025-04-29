@@ -7,6 +7,7 @@ import { Resume, ResumeDocument } from './schemas/resume.schema';
 import { SoftDeleteModel } from 'mongoose-delete';
 import aqp from 'api-query-params';
 import mongoose from 'mongoose';
+import path from 'node:path';
 
 @Injectable()
 export class ResumesService {
@@ -146,7 +147,12 @@ export class ResumesService {
   async getByUser(user: IUser) {
     try {
       const { _id } = user;
-      const foundResume = await this.resumeModel.find({ userId: _id });
+      const foundResume = await this.resumeModel.find({ userId: _id })
+      .sort({ createdAt: -1 })
+      .populate([
+        { path: "companyId", select: "_id name" },
+        { path: "jobId", select: "_id name" },
+      ]);
 
       return foundResume;
     } catch (error) {

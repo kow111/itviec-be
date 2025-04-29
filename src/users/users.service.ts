@@ -124,7 +124,10 @@ export class UsersService {
 
   async findOne(id: string) {
     try {
-      const user = await this.userModel.findById(id).lean();
+      const user = await this.userModel.findById(id).populate({
+        path: 'role',
+        select: '_id name',
+      });
       if (!user) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
@@ -146,7 +149,10 @@ export class UsersService {
         .findOne({
           email: username,
         })
-        .lean();
+        .populate({
+          path: 'role',
+          select: '_id name permissions',
+        });
       if (!user) {
         throw new NotFoundException(`User with Email: ${username} not found`);
       }
@@ -191,8 +197,8 @@ export class UsersService {
       if (!foundUser) {
         throw new NotFoundException(`User with ID ${id} not found`);
       }
-      if (foundUser.deleted) {
-        throw new BadRequestException('User already deleted');
+      if (foundUser.email === 'admin@gmail.com') {
+        throw new BadRequestException(`Cannot delete admin user`);
       }
       await this.userModel.findByIdAndUpdate(id, {
         deletedBy: user._id,

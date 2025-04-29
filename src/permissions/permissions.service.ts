@@ -72,6 +72,7 @@ export class PermissionsService {
       throw new BadRequestException(`Failed to fetch user: ${error.message}`);
     }
   }
+
   async findOne(id: string) {
     try {
       const foundPermission = await this.permissionModel.findById(id);
@@ -96,13 +97,18 @@ export class PermissionsService {
   ) {
     try {
       const { _id } = user;
-      const checkPermission = await this.permissionModel.findOne({
+      const checkPermission1 = await this.permissionModel.findById(id);
+      if (!checkPermission1) {
+        throw new BadRequestException(`Permission with id ${id} not found`);
+      }
+
+      const checkPermission2 = await this.permissionModel.findOne({
         _id: { $ne: id },
         apiPath: updatePermissionDto.apiPath,
         method: updatePermissionDto.method,
       });
 
-      if (checkPermission) {
+      if (checkPermission2) {
         throw new BadRequestException(
           `Another permission with this apiPath and method already exists`,
         );
