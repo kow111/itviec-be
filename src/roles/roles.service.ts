@@ -7,6 +7,7 @@ import { SoftDeleteModel } from 'mongoose-delete';
 import { User } from 'src/decorator/customize';
 import { IUser } from 'src/users/users.interface';
 import aqp from 'api-query-params';
+import { ADMIN_ROLE } from 'src/database/sample';
 
 @Injectable()
 export class RolesService {
@@ -73,7 +74,10 @@ export class RolesService {
     try {
       const checkRole = await this.roleModel
         .findById(id)
-        .populate({ path: 'permissions', select: '_id apiPath name method module' });
+        .populate({
+          path: 'permissions',
+          select: '_id apiPath name method module',
+        });
       if (!checkRole) {
         throw new BadRequestException(`Role not found`);
       }
@@ -124,7 +128,7 @@ export class RolesService {
       if (!checkRole) {
         throw new BadRequestException(`Role not found`);
       }
-      if (checkRole.name === 'ADMIN') {
+      if (checkRole.name === ADMIN_ROLE) {
         throw new BadRequestException(`Cannot delete admin role`);
       }
       await this.roleModel.findByIdAndUpdate(id, {

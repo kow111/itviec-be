@@ -11,6 +11,7 @@ import { FilesModule } from './files/files.module';
 import { ResumesModule } from './resumes/resumes.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
+import { DatabaseModule } from './database/database.module';
 import * as mongooseDelete from 'mongoose-delete';
 
 @Module({
@@ -40,6 +41,7 @@ import * as mongooseDelete from 'mongoose-delete';
     ResumesModule,
     PermissionsModule,
     RolesModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -15,11 +15,14 @@ import { SoftDeleteModel } from 'mongoose-delete';
 import { create } from 'domain';
 import { IUser } from './users.interface';
 import aqp from 'api-query-params';
+import { USER_ROLE } from 'src/database/sample';
+import { Role, RoleDocument } from 'src/roles/schemas/role.schema';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: SoftDeleteModel<UserDocument>,
+    @InjectModel(Role.name) private roleModel: SoftDeleteModel<RoleDocument>,
   ) {}
 
   async hashPassword(password: string): Promise<string> {
@@ -71,9 +74,12 @@ export class UsersService {
       const { password } = createUserDto;
       const hashedPassword = await this.hashPassword(password);
       createUserDto.password = hashedPassword;
+      const role = await this.roleModel.findOne({
+        name: USER_ROLE,
+      });
       const createdUser = await this.userModel.create({
         ...createUserDto,
-        role: 'USER',
+        role: role,
       });
       return {
         _id: createdUser._id,
@@ -151,8 +157,9 @@ export class UsersService {
         })
         .populate({
           path: 'role',
-          select: '_id name permissions',
-        });
+          select: '_id name',
+        })
+        .lean();
       if (!user) {
         throw new NotFoundException(`User with Email: ${username} not found`);
       }
@@ -234,9 +241,14 @@ export class UsersService {
 
   async findByRefreshToken(refreshToken: string) {
     try {
-      const user = await this.userModel.findOne({
-        refreshToken: refreshToken,
-      });
+      const user = await this.userModel
+        .findOne({
+          refreshToken: refreshToken,
+        })
+        .populate({
+          path: 'role',
+          select: '_id name',
+        });
       if (!user) {
         throw new NotFoundException(`User with refresh token not found`);
       }

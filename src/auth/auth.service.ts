@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { IUser } from 'src/users/users.interface';
 import { UsersService } from 'src/users/users.service';
+import { RolesService } from 'src/roles/roles.service';
 const ms = require('ms');
 
 @Injectable()
@@ -13,6 +14,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private readonly configService: ConfigService,
+    private rolesService: RolesService,
   ) {}
 
   async validateUser(username: string, pass: string): Promise<any> {
@@ -25,7 +27,13 @@ export class AuthService {
       user.password,
     );
     if (isPasswordValid) {
-      const { password, ...result } = user;
+      const userRole = user.role as unknown as { _id: string; name: string };
+      const tmp = await this.rolesService.findOne(userRole._id);
+      const objUser = {
+        ...user,
+        permissions: tmp?.permissions ?? [],
+      };
+      const { password, ...result } = objUser;
       return result;
     }
     return null;
@@ -46,7 +54,7 @@ export class AuthService {
   }
 
   async login(user: IUser, response: Response) {
-    const { _id, name, email, role } = user;
+    const { _id, name, email, role, permissions } = user;
     const payload = {
       sub: 'token login',
       iss: 'from server',
@@ -76,6 +84,7 @@ export class AuthService {
         name,
         email,
         role,
+        permissions,
       },
     };
   }
@@ -95,12 +104,15 @@ export class AuthService {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
       const user = await this.usersService.findByRefreshToken(refreshToken);
+      const userRole = user.role as unknown as { _id: string; name: string };
+      const tmp = (await this.rolesService.findOne(userRole._id)) as any;
       const { _id, name, email, role } = user;
       const iUser: IUser = {
         _id: _id.toString(),
         name,
         email,
-        role,
+        role: userRole,
+        permissions: tmp?.permissions ?? [],
       };
       return this.login(iUser, response);
     } catch (error) {

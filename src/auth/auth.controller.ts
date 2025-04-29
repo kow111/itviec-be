@@ -12,10 +12,15 @@ import { LocalAuthGuard } from './guard/local-auth.guard';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from 'src/users/dto/create-user.dto';
 import { Request, Response } from 'express';
+import { RolesService } from 'src/roles/roles.service';
+import { IUser } from 'src/users/users.interface';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private roleService: RolesService,
+  ) {}
 
   @Public()
   @UseGuards(LocalAuthGuard)
@@ -34,9 +39,11 @@ export class AuthController {
 
   @Get('account')
   @ResponseMessage('Account retrieved successfully')
-  getProfile(@Req() req) {
+  async getProfile(@User() user: IUser) {
+    const tmp = (await this.roleService.findOne(user.role._id)) as any;
+    user.permissions = tmp.permissions;
     return {
-      user: req.user,
+      user: user,
     };
   }
 
