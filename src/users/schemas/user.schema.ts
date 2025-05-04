@@ -25,6 +25,9 @@ export class User {
   @Prop()
   age: number;
 
+  @Prop()
+  address: string;
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Company' })
   company: Company;
 
