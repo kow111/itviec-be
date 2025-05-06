@@ -15,16 +15,21 @@ import { FilesService } from './files.service';
 import { CreateFileDto } from './dto/create-file.dto';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ResponseMessage } from 'src/decorator/customize';
+import { Public, ResponseMessage } from 'src/decorator/customize';
+import { FirebaseService } from './firebase.service';
 
 @Controller('files')
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly firebaseService: FirebaseService,
+  ) {}
 
+  @Public()
   @Post('upload')
   @ResponseMessage('File uploaded successfully')
   @UseInterceptors(FileInterceptor('fileUpload'))
-  uploadFile(
+  async uploadFile(
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
@@ -39,9 +44,8 @@ export class FilesController {
     )
     file: Express.Multer.File,
   ) {
-    return {
-      fileName: file.filename,
-    };
+    const url = await this.firebaseService.uploadFile(file);
+    return { fileName: url };
   }
 
   @Get()
