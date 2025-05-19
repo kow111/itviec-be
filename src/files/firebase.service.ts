@@ -16,7 +16,7 @@ export class FirebaseService {
   }
 
   async uploadFile(file: Express.Multer.File): Promise<string> {
-    const fileName = Date.now() + '-' + file.originalname;
+    const fileName = Date.now();
     const fileUpload = this.bucket.file(fileName);
 
     const blobStream = fileUpload.createWriteStream({
