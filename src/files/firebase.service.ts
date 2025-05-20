@@ -1,13 +1,6 @@
-import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import * as fs from 'fs';
-import * as path from 'path';
-
-const serviceAccountPath = path.join(
-  __dirname,
-  '../../firebase-service-account.json',
-);
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+import { Injectable } from '@nestjs/common';
+import * as serviceAccount from '../../firebase-service-account.json';
 
 @Injectable()
 export class FirebaseService {
