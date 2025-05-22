@@ -76,6 +76,8 @@ export class AuthService {
     response.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       maxAge: maxAge,
+      secure: true,
+      sameSite: 'none',
     });
     return {
       access_token: this.jwtService.sign(payload),
